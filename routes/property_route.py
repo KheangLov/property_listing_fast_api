@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer
 from property import PropertyCreate, PropertyUpdate, PropertyRes
 from helper import *
-from core import Base64ToFile
+# from core import Base64ToFile
 
 security = HTTPBearer()
 router = APIRouter()
@@ -29,8 +29,8 @@ async def get_property(id: int, current_user: Model.User = Depends(get_current_a
 def create_property(request: PropertyCreate, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
         user_id = request.user_id if request.user_id else current_user.id
-        base64_text_file = Base64ToFile(data)
-        return base64_text_file.filename
+        # base64_text_file = Base64ToFile(data)
+        # return base64_text_file.filename
         prop = dict(PropertyCreate.from_orm(Model.Property(
             sale_list_price=request.sale_list_price,
             rent_list_price=request.rent_list_price,
