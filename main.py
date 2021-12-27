@@ -1,13 +1,19 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from routes.user_route import router as user_router
 from routes.property_route import router as property_router
+from routes.listing_route import router as listing_router
+from routes.kh_address_route import router as kh_address_router
 
 app = FastAPI()
-
+app.mount("/images", StaticFiles(directory="images"), name="images")
 app.include_router(user_router)
 app.include_router(property_router)
+app.include_router(listing_router)
+app.include_router(kh_address_router)
+
 
 origins = ['*']
 

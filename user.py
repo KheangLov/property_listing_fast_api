@@ -3,6 +3,18 @@ import pydantic
 from typing import Optional as OptionalTyping
 
 
+class UserRes(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    phone: str
+    disabled: bool
+
+    class Config:
+        orm_mode = True
+
+
 class UserLogin(BaseModel):
     email: str
     password: str
@@ -11,12 +23,12 @@ class UserLogin(BaseModel):
         orm_mode = True
 
 
-class UserRes(BaseModel):
-    id: int
+class UserReg(BaseModel):
     first_name: str
     last_name: str
     email: str
     phone: str
+    password: str
     disabled: bool
 
     class Config:

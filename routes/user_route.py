@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from token_auth import Token
 from helper import *
+from pony.orm import select, count
 
 security = HTTPBearer()
 router = APIRouter()
@@ -23,6 +24,12 @@ async def get_users(current_user: Model.User = Depends(get_current_active_user))
     return result
 
 
+@router.get('/users_count')
+async def get_users_count():
+    with db_session:
+        return Model.User.select().count()
+
+
 @router.get('/users/{id}')
 async def get_user(id: int, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
@@ -30,14 +37,20 @@ async def get_user(id: int, current_user: Model.User = Depends(get_current_activ
         return [UserRes.from_orm(u) for u in user if u.id == id][0]
 
 
+@router.get('/users/front/{id}')
+async def get_user_front(id: int):
+    with db_session:
+        user = Model.User.select()
+        return [UserRes.from_orm(u) for u in user if u.id == id][0]
+
+
 @router.post('/register', tags=['User'])
-def register(request: UserIn):
+def register(request: UserReg):
     with db_session:
         _hash = Hash()
         password = _hash.get_password_hash(request.password)
 
-        # try:
-        user = dict(UserIn.from_orm(Model.User(
+        user = dict(UserReg.from_orm(Model.User(
             first_name=request.first_name,
             last_name=request.last_name,
             email=request.email,
@@ -51,12 +64,6 @@ def register(request: UserIn):
             'success': True,
             'data': jsonable_encoder(user)
         }
-        # except ValidationError as e:
-        #     print(e)
-        #     return {
-        #         'success': False,
-        #         'data': e
-        #     }
 
 
 @router.post("/upload_profile", tags=['User'])
@@ -71,6 +78,12 @@ async def login_for_access_token(form_data: UserLogin):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user.disabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can not login this user!",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -122,7 +135,7 @@ def delete_user(id: int, current_user: Model.User = Depends(get_current_active_u
         }
 
 
-# @router.get("/logout")
-# def logout(response: Response):
-#     response.delete_cookie(key='access_token')
-#     return response
+@router.get("/logout")
+def logout(response: Response):
+    response.delete_cookie(key='access_token')
+    return response

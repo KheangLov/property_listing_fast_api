@@ -67,5 +67,20 @@ class Model:
         deleted_at = Optional(datetime)
         approved_at = Optional(datetime)
         approved_by = Optional(int)
+        sale_price = Optional(float)
+        rent_price = Optional(float)
+        image = Optional(str)
 
-    db.generate_mapping(create_tables=True)
+    class KhAddress(db.Entity):
+        _table_ = "kh_address"
+        type_kh = Optional(str)
+        type_en = Optional(str)
+        code = Optional(str)
+        name_kh = Optional(str)
+        name_en = Optional(str)
+        path_kh = Optional(str)
+        path_en = Optional(str)
+        center = Optional(str)
+        boundary = Optional(str)
+
+    db.generate_mapping()

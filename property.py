@@ -21,7 +21,7 @@ class PropertyRes(BaseModel):
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     deleted_at: Optional[datetime]
-    # image: Optional[str]
+    image: str
     # gallery: Optional[str]
     is_rent: Optional[bool]
     is_sale: Optional[bool]
@@ -51,8 +51,7 @@ class PropertyCreate(BaseModel):
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     deleted_at: Optional[datetime]
-    # image: Optional[str]
-    # gallery: Optional[str]
+    image: Optional[str]
     is_rent: Optional[bool]
     is_sale: Optional[bool]
     status: Optional[str]
