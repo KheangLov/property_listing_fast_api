@@ -2,13 +2,14 @@ from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
 import pydantic
+from property import PropertyRes
 
 
 class ListingRes(BaseModel):
-    id: int
+    id: Optional[int]
     sale_price: Optional[float]
     rent_price: Optional[float]
-    property_id: int
+    property: Optional[PropertyRes]
     close_reason: Optional[str]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
@@ -26,16 +27,9 @@ class ListingRes(BaseModel):
 class ListingCreate(BaseModel):
     sale_price: Optional[float]
     rent_price: Optional[float]
-    property_id: int
-    close_reason: Optional[str]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-    deleted_at: Optional[datetime]
-    image: Optional[str]
+    property_id: Optional[int]
     status: Optional[str]
     created_by: Optional[int]
-    updated_by: Optional[int]
-    approved_by: Optional[int]
 
     class Config:
         orm_mode = True
@@ -56,3 +50,7 @@ class AllOptional(pydantic.main.ModelMetaclass):
 
 class ListingUpdate(ListingCreate, metaclass=AllOptional):
     pass
+    approved_by: Optional[int]
+    close_reason: Optional[str]
+    updated_by: int
+    updated_at: datetime

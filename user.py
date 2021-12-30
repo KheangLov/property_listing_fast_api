@@ -9,6 +9,7 @@ class UserRes(BaseModel):
     last_name: str
     email: str
     phone: str
+    profile: OptionalTyping[str]
     disabled: bool
 
     class Config:
@@ -29,6 +30,7 @@ class UserReg(BaseModel):
     email: str
     phone: str
     password: str
+    profile: OptionalTyping[str]
     disabled: bool
 
     class Config:
@@ -43,6 +45,7 @@ class UserIn(BaseModel):
     phone: str
     password: str
     disabled: bool
+    profile: OptionalTyping[str]
 
     class Config:
         orm_mode = True
@@ -60,7 +63,7 @@ class AllOptional(pydantic.main.ModelMetaclass):
         return super().__new__(mcs, name, bases, namespaces, **kwargs)
 
 
-class UpdateUser(UserIn, metaclass=AllOptional):
+class UpdateUser(UserReg, metaclass=AllOptional):
     pass
 
 

@@ -1,39 +1,45 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-
+from typing import List
 from property import PropertyCreate, PropertyUpdate, PropertyRes
+from listing import ListingRes
 from helper import *
 from base64_to_file import Base64ToFile
+from pony.orm import select, count, desc
 
 router = APIRouter()
 
 
-@router.get('/properties')
+@router.get('/properties', response_model=List[PropertyRes])
 async def get_properties(current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        properties = Model.Property.select()
-        result = [PropertyRes.from_orm(u) for u in properties]
-    return result
+        return list(Model.Property.select().prefetch(Model.User))
 
 
 @router.get('/properties_count')
 async def get_properties_count():
     with db_session:
-        return Model.Property.select().count()
+        return dict(select((p.status, count(p.id)) for p in Model.Property))
+
+
+@router.get('/properties/latest')
+async def get_listings_latest():
+    with db_session:
+        listings = select(l for l in Model.Property).prefetch(Model.User).order_by(desc(Model.Property.updated_at))[:10]
+        result = [PropertyRes.from_orm(u) for u in listings]
+    return result
 
 
 @router.get('/properties/{id}')
 async def get_property(id: int, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        prop = Model.Property.select()
-        return [PropertyRes.from_orm(u) for u in prop if u.id == id][0]
+        return PropertyRes.from_orm(Model.Property.get(id=id))
 
 
 @router.get('/properties/front/{id}')
 async def get_property_front(id: int):
     with db_session:
-        prop = Model.Property.select()
-        return [PropertyRes.from_orm(u) for u in prop if u.id == id][0]
+        return PropertyRes.from_orm(Model.Property.get(id=id))
 
 
 @router.post('/properties', tags=['Property'])
@@ -43,26 +49,13 @@ def create_property(request: PropertyCreate, current_user: Model.User = Depends(
         base64_text_file = ''
         if request.image:
             base64_text_file = Base64ToFile(request.image)
-        prop = dict(PropertyCreate.from_orm(Model.Property(
-            sale_list_price=request.sale_list_price,
-            rent_list_price=request.rent_list_price,
-            street_no=request.street_no,
-            house_no=request.house_no,
-            address=request.address,
-            full_address=request.full_address,
-            latitude=request.latitude,
-            longitude=request.longitude,
-            land_width=request.land_width,
-            land_length=request.land_length,
-            land_area=request.land_area,
-            description=request.description,
-            image=base64_text_file.filename,
-            is_rent=request.is_rent,
-            is_sale=request.is_sale,
-            status='pending',
-            created_by=current_user.id,
-            user_id=user_id,
-        )))
+
+        request.image = f"images/{base64_text_file.filename}"
+        request.created_by = current_user.id
+        req_dict = request.dict()
+        req_dict["user"] = Model.User[user_id]
+        del req_dict["user_id"]
+        prop = PropertyCreate.from_orm(Model.Property(**req_dict))
 
         return {
             'success': True,
@@ -103,12 +96,24 @@ def update_property(id: int, request: PropertyUpdate, current_user: Model.User =
         Model.Property[id].is_rent = request.is_rent
     if request.is_sale:
         Model.Property[id].is_sale = request.is_sale
+    if request.reason:
+        Model.Property[id].reason = request.reason
     if request.status:
-        Model.Property[id].status = request.status
+        listing = ListingRes.from_orm(Model.Listing.select(property=Model.Property[id]).first())
+        if listing.id:
+            Model.Property[id].status = 'listing pending'
+        else:
+            Model.Property[id].status = request.status
     else:
         Model.Property[id].status = 'pending'
     if request.user_id:
         Model.Property[id].user_id = request.user_id
+    if request.image and 'base64,' in request.image:
+        base64_text_file = ''
+        if request.image:
+            base64_text_file = Base64ToFile(request.image)
+
+        request.image = f"images/{base64_text_file.filename}"
 
     Model.Property[id].updated_by = current_user.id
     Model.Property[id].updated_at = datetime.now()

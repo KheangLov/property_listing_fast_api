@@ -22,10 +22,7 @@ class Model:
         profile = Optional(str)
         created_at = Required(datetime, default=lambda: datetime.now())
         updated_at = Required(datetime, default=lambda: datetime.now())
-
-        @property
-        def full_name(self):
-            return f"{self.first_name} {self.last_name}"
+        property = Set('Property')
 
     class Property(db.Entity):
         _table_ = "properties"
@@ -41,7 +38,7 @@ class Model:
         land_width = Required(Decimal)
         land_length = Required(Decimal)
         land_area = Required(Decimal)
-        description = Optional(str)
+        description = Optional(str, default='')
         created_at = Required(datetime, default=lambda: datetime.now())
         updated_at = Required(datetime, default=lambda: datetime.now())
         deleted_at = Optional(datetime)
@@ -52,12 +49,14 @@ class Model:
         status = Optional(str)
         created_by = Optional(int)
         updated_by = Optional(int)
-        user_id = Optional(int)
+        reason = Optional(str)
+        user = Required('User', column='user_id')
+        listing = Set('Listing')
 
     class Listing(db.Entity):
         _table_ = "listings"
         id = PrimaryKey(int, auto=True)
-        property_id = Required(int)
+        property = Required('Property', column='property_id')
         created_by = Optional(int)
         updated_by = Optional(int)
         status = Optional(str)

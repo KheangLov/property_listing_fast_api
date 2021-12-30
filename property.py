@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import pydantic
+from user import UserRes
 
 
 class PropertyRes(BaseModel):
@@ -17,18 +18,18 @@ class PropertyRes(BaseModel):
     land_width: float
     land_length: float
     land_area: float
-    description: str
+    description: Optional[str]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     deleted_at: Optional[datetime]
-    image: str
-    # gallery: Optional[str]
+    image: Optional[str]
     is_rent: Optional[bool]
     is_sale: Optional[bool]
     status: Optional[str]
     created_by: Optional[int]
     updated_by: Optional[int]
-    user_id: Optional[int]
+    reason: Optional[str]
+    user: UserRes
 
     class Config:
         orm_mode = True
@@ -47,14 +48,11 @@ class PropertyCreate(BaseModel):
     land_width: float
     land_length: float
     land_area: float
-    description: str
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-    deleted_at: Optional[datetime]
+    description: Optional[str]
     image: Optional[str]
     is_rent: Optional[bool]
     is_sale: Optional[bool]
-    status: Optional[str]
+    status: Optional[str] = 'pending'
     created_by: Optional[int]
     updated_by: Optional[int]
     user_id: Optional[int]
@@ -78,3 +76,4 @@ class AllOptional(pydantic.main.ModelMetaclass):
 
 class PropertyUpdate(PropertyCreate, metaclass=AllOptional):
     pass
+    reason: Optional[str]

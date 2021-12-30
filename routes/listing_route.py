@@ -2,8 +2,7 @@ from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from listing import ListingRes, ListingCreate, ListingUpdate
 from helper import *
-from base64_to_file import Base64ToFile
-from pony.orm import select
+from pony.orm import select, count, desc
 
 router = APIRouter()
 
@@ -11,7 +10,7 @@ router = APIRouter()
 @router.get('/listings')
 async def get_listings(current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        listings = Model.Listing.select()
+        listings = Model.Listing.select().prefetch(Model.Property)
         result = [ListingRes.from_orm(u) for u in listings]
     return result
 
@@ -19,7 +18,15 @@ async def get_listings(current_user: Model.User = Depends(get_current_active_use
 @router.get('/listings/front')
 async def get_listings_front():
     with db_session:
-        listings = select(l for l in Model.Listing if l.status == 'active')
+        listings = select(l for l in Model.Listing if l.status == 'active').prefetch(Model.Property)
+        result = [ListingRes.from_orm(u) for u in listings]
+    return result
+
+
+@router.get('/listings/latest')
+async def get_listings_latest():
+    with db_session:
+        listings = select(l for l in Model.Listing).prefetch(Model.Property).order_by(desc(Model.Listing.updated_at))[:10]
         result = [ListingRes.from_orm(u) for u in listings]
     return result
 
@@ -27,38 +34,33 @@ async def get_listings_front():
 @router.get('/listings_count')
 async def get_listings_count():
     with db_session:
-        return Model.Listing.select().count()
+        return dict(select((p.status, count(p.id)) for p in Model.Listing))
 
 
 @router.get('/listings/{id}')
 async def get_listing(id: int, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        prop = Model.Listing.select()
+        prop = Model.Listing.select().prefetch(Model.Property).prefetch(Model.User)
         return [ListingRes.from_orm(u) for u in prop if u.id == id][0]
 
 
 @router.get('/listings/front/{id}')
 async def get_listing_front(id: int):
     with db_session:
-        listings = select(l for l in Model.Listing if l.status == 'active')
+        listings = select(l for l in Model.Listing if l.status == 'active').prefetch(Model.Property).prefetch(Model.User)
         return [ListingRes.from_orm(u) for u in listings if u.id == id][0]
 
 
 @router.post('/listings', tags=['Listing'])
 def create_listing(request: ListingCreate, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        base64_text_file = ''
-        if request.image:
-            base64_text_file = Base64ToFile(request.image)
-        prop = dict(ListingCreate.from_orm(Model.Listing(
-            sale_price=request.sale_price,
-            rent_price=request.rent_price,
-            property_id=request.property_id,
-            # close_reason=request.close_reason,
-            image=base64_text_file.filename if base64_text_file and base64_text_file.filename else base64_text_file,
-            status='inactive',
-            created_by=current_user.id,
-        )))
+        Model.Property[request.property_id].status = 'listing pending'
+        request.status = 'inactive'
+        request.created_by = current_user.id
+        req_dict = request.dict()
+        req_dict["property"] = Model.Property[request.property_id]
+        del req_dict["property_id"]
+        prop = ListingCreate.from_orm(Model.Listing(**req_dict))
 
         return {
             'success': True,
@@ -70,10 +72,23 @@ def create_listing(request: ListingCreate, current_user: Model.User = Depends(ge
 @db_session
 def update_listing(id: int, request: ListingUpdate, current_user: Model.User = Depends(get_current_active_user)):
     if request.status:
+        if request.status == 'active':
+            prop = Model.Property[Model.Listing[id].property.id]
+            print(prop.status)
+            if prop.status != 'listing pending':
+                return {
+                    'success': False,
+                    'message': 'Can not approved this listing!'
+                }
+
+            prop.status = 'listing'
+            prop.approved_by = current_user.id
+            prop.approved_at = datetime.now()
+        else:
+            Model.Property[Model.Listing[id].property.id].status = 'listing pending'
+
         Model.Listing[id].status = request.status
-    if request.approved_by:
-        Model.Listing[id].approved_by = current_user.id
-        Model.Listing[id].approved_at = datetime.now()
+
     if request.close_reason:
         Model.Listing[id].close_reason = request.close_reason
 
