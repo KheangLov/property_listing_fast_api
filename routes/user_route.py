@@ -62,13 +62,20 @@ def register(request: UserReg):
         if request.profile:
             base64_text_file = Base64ToFile(request.profile)
 
+        user = find_user(request.email)
+        if user:
+            return {
+                'success': False,
+                'message': 'Email already exist!'
+            }
+
         user = dict(UserReg.from_orm(Model.User(
             first_name=request.first_name,
             last_name=request.last_name,
             email=request.email,
             password=password,
             phone=request.phone,
-            profile=f"images/{base64_text_file.filename}"
+            profile=f"images/{base64_text_file.filename}" if base64_text_file else ''
         )))
 
         del user['password']

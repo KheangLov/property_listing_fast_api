@@ -43,8 +43,8 @@ class PropertyCreate(BaseModel):
     house_no: str
     address: str
     full_address: str
-    latitude: float
-    longitude: float
+    latitude: str
+    longitude: str
     land_width: float
     land_length: float
     land_area: float

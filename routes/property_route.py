@@ -11,9 +11,10 @@ router = APIRouter()
 
 
 @router.get('/properties', response_model=List[PropertyRes])
-async def get_properties(current_user: Model.User = Depends(get_current_active_user)):
+async def get_properties(page: int = 1, per_page: int = 5):
     with db_session:
-        return list(Model.Property.select().prefetch(Model.User))
+        # .page(page, per_page)
+        return list(Model.Property.select().prefetch(Model.User).order_by(desc(Model.Property.updated_at)))
 
 
 @router.get('/properties_count')
@@ -79,9 +80,9 @@ def update_property(id: int, request: PropertyUpdate, current_user: Model.User =
     if request.full_address:
         Model.Property[id].full_address = request.full_address
     if request.latitude:
-        Model.Property[id].latitude = request.latitude
+        Model.Property[id].latitude = str(request.latitude)
     if request.longitude:
-        Model.Property[id].longitude = request.longitude
+        Model.Property[id].longitude = str(request.longitude)
     if request.land_width:
         Model.Property[id].land_width = request.land_width
     if request.land_length:
@@ -100,7 +101,7 @@ def update_property(id: int, request: PropertyUpdate, current_user: Model.User =
         Model.Property[id].reason = request.reason
     if request.status:
         listing = ListingRes.from_orm(Model.Listing.select(property=Model.Property[id]).first())
-        if listing.id:
+        if listing.id and request.status != 'reject':
             Model.Property[id].status = 'listing pending'
         else:
             Model.Property[id].status = request.status
