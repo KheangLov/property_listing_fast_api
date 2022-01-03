@@ -7,6 +7,7 @@ from routes.property_route import router as property_router
 from routes.listing_route import router as listing_router
 from routes.kh_address_route import router as kh_address_router
 from os import getenv
+from fastapi_pagination import add_pagination
 
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="images"), name="images")
@@ -25,6 +26,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+add_pagination(app)
 
 
 # create_tables=True

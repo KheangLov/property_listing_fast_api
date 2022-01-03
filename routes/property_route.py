@@ -1,20 +1,27 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from typing import List
 from property import PropertyCreate, PropertyUpdate, PropertyRes
 from listing import ListingRes
 from helper import *
 from base64_to_file import Base64ToFile
 from pony.orm import select, count, desc
+from fastapi_pagination import paginate, Page
 
 router = APIRouter()
 
 
-@router.get('/properties', response_model=List[PropertyRes])
-async def get_properties(page: int = 1, per_page: int = 5):
+# current_user: Model.User = Depends(get_current_active_user)
+@router.get('/properties', response_model=Page[PropertyRes])
+async def get_properties():
     with db_session:
-        # .page(page, per_page)
-        return list(Model.Property.select().prefetch(Model.User).order_by(desc(Model.Property.updated_at)))
+        return paginate(list(Model.Property.select().prefetch(Model.User).order_by(desc(Model.Property.updated_at))))
+        # return {
+        #     'current_page': page,
+        #     'data': list(PropertyRes(**props.page(page, per_page))),
+        #     'per_page': per_page,
+        #     'total': props.count(),
+        #     'last_page': props.count()//per_page
+        # }
 
 
 @router.get('/properties_count')

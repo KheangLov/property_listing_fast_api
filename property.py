@@ -50,8 +50,8 @@ class PropertyCreate(BaseModel):
     land_area: float
     description: Optional[str]
     image: Optional[str]
-    is_rent: Optional[bool]
-    is_sale: Optional[bool]
+    is_rent: bool
+    is_sale: bool
     status: Optional[str] = 'pending'
     created_by: Optional[int]
     updated_by: Optional[int]
