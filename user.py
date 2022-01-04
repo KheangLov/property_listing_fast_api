@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 import pydantic
 from typing import Optional as OptionalTyping
+from datetime import datetime
 
 
 class UserRes(BaseModel):
@@ -11,6 +12,8 @@ class UserRes(BaseModel):
     phone: str
     profile: OptionalTyping[str]
     disabled: bool
+    created_at: OptionalTyping[datetime]
+    updated_at: OptionalTyping[datetime]
 
     class Config:
         orm_mode = True
