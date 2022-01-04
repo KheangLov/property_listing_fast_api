@@ -6,25 +6,19 @@ from helper import *
 from base64_to_file import Base64ToFile
 from pony.orm import select, count, desc
 from fastapi_pagination import paginate, Page
+from typing import Optional
 
 router = APIRouter()
 
 
 #
 @router.get('/properties', response_model=Page[PropertyRes])
-async def get_properties(search: int = '', current_user: Model.User = Depends(get_current_active_user)):
+async def get_properties(search: Optional[int] = '', current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        result = Model.Property.select()
         if search:
-            result.filter(lambda p: p.startswith(search))
-        return paginate(list(result.prefetch(Model.User).order_by(desc(Model.Property.updated_at))))
-        # return {
-        #     'current_page': page,
-        #     'data': list(PropertyRes(**props.page(page, per_page))),
-        #     'per_page': per_page,
-        #     'total': props.count(),
-        #     'last_page': props.count()//per_page
-        # }
+            return paginate(list(Model.Property.select().filter(lambda p: str(search) in str(p.id)).prefetch(Model.User)
+                                 .order_by(desc(Model.Property.updated_at))))
+        return paginate(list(Model.Property.select().prefetch(Model.User).order_by(desc(Model.Property.updated_at))))
 
 
 @router.get('/properties_count')

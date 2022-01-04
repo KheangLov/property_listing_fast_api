@@ -3,16 +3,22 @@ from fastapi.encoders import jsonable_encoder
 from listing import ListingRes, ListingCreate, ListingUpdate
 from helper import *
 from pony.orm import select, count, desc
+from fastapi_pagination import paginate, Page
+from typing import Optional
 
 router = APIRouter()
 
 
-@router.get('/listings')
-async def get_listings(current_user: Model.User = Depends(get_current_active_user)):
-    with db_session:
-        listings = Model.Listing.select().prefetch(Model.Property)
-        result = [ListingRes.from_orm(u) for u in listings]
-    return result
+@router.get('/listings', response_model=Page[ListingRes])
+async def get_listings(search: Optional[str] = '', current_user: Model.User = Depends(get_current_active_user)):
+    result = Model.Listing.select()
+    if search:
+        return paginate(list(Model.Listing.select().filter(lambda p: str(search) in str(p.id) or str(search) in str(p.property.id)).prefetch(Model.Property).order_by(desc(Model.Listing.updated_at))))
+    return paginate(list(Model.Listing.select().prefetch(Model.Property).order_by(desc(Model.Listing.updated_at))))
+    # with db_session:
+    #     listings = Model.Listing.select().prefetch(Model.Property)
+    #     result = [ListingRes.from_orm(u) for u in listings]
+    # return result
 
 
 @router.get('/listings/front')

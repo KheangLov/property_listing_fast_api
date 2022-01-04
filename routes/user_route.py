@@ -5,7 +5,9 @@ from token_auth import Token
 from helper import *
 from base64_to_file import Base64ToFile
 from os import getenv
-from pony.orm import select, count
+from pony.orm import select, count, desc
+from fastapi_pagination import paginate, Page
+from typing import Optional
 
 security = HTTPBearer()
 router = APIRouter()
@@ -19,7 +21,7 @@ async def get_current_user(current_user: Model.User = Depends(get_current_active
     return current_user
 
 
-@router.get('/users')
+@router.get('/all_users')
 async def get_users(current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
         users = Model.User.select()
@@ -29,6 +31,21 @@ async def get_users(current_user: Model.User = Depends(get_current_active_user))
             user.profile = f"{getenv('URL', 'http://127.0.0.1:9800/')}{user.profile}" if user.profile else ''
             result.append(user)
     return result
+
+
+@router.get('/users', response_model=Page[UserRes])
+async def get_users(search: Optional[str] = '', current_user: Model.User = Depends(get_current_active_user)):
+    if search:
+        return paginate(list(Model.User.select().filter(lambda p: str(search) in str(p.first_name) or str(search) in str(p.last_name) or str(search) in str(p.email)).order_by(desc(Model.User.updated_at))))
+    return paginate(list(Model.User.select().order_by(desc(Model.User.updated_at))))
+    # with db_session:
+    #     users = Model.User.select()
+    #     result = []
+    #     for u in users:
+    #         user = UserRes.from_orm(u)
+    #         user.profile = f"{getenv('URL', 'http://127.0.0.1:9800/')}{user.profile}" if user.profile else ''
+    #         result.append(user)
+    # return result
 
 
 @router.get('/users_count')
