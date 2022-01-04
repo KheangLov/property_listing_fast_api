@@ -20,7 +20,9 @@ def find_user(email):
     with db_session:
         user = Model.User.select()
         result = [UserIn.from_orm(u) for u in user if u.email == email]
-    return result[0]
+    if len(result):
+        return result[0]
+    return False
 
 
 def authenticate_user(email: str, password: str):

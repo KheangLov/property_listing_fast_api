@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,9 @@ from routes.listing_route import router as listing_router
 from routes.kh_address_route import router as kh_address_router
 from os import getenv
 from fastapi_pagination import add_pagination
+from fastapi.exceptions import RequestValidationError, ValidationError
+from fastapi.responses import JSONResponse
+import json
 
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="images"), name="images")
@@ -16,6 +20,14 @@ app.include_router(property_router)
 app.include_router(listing_router)
 app.include_router(kh_address_router)
 
+
+@app.exception_handler(RequestValidationError)
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors()}),
+    )
 
 origins = ['*']
 

@@ -10,11 +10,14 @@ from fastapi_pagination import paginate, Page
 router = APIRouter()
 
 
-# current_user: Model.User = Depends(get_current_active_user)
+#
 @router.get('/properties', response_model=Page[PropertyRes])
-async def get_properties():
+async def get_properties(search: int = '', current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
-        return paginate(list(Model.Property.select().prefetch(Model.User).order_by(desc(Model.Property.updated_at))))
+        result = Model.Property.select()
+        if search:
+            result.filter(lambda p: p.startswith(search))
+        return paginate(list(result.prefetch(Model.User).order_by(desc(Model.Property.updated_at))))
         # return {
         #     'current_page': page,
         #     'data': list(PropertyRes(**props.page(page, per_page))),
@@ -56,10 +59,12 @@ def create_property(request: PropertyCreate, current_user: Model.User = Depends(
         user_id = request.user_id if request.user_id else current_user.id
         base64_text_file = ''
         if request.image:
-            base64_text_file = Base64ToFile(request.image)
+            base64_text_file = Base64ToFile(request.image.split('base64,')[1])
 
         request.image = f"images/{base64_text_file.filename}"
         request.created_by = current_user.id
+        if not request.description:
+            request.description = ''
         req_dict = request.dict()
         req_dict["user"] = Model.User[user_id]
         del req_dict["user_id"]
@@ -73,7 +78,7 @@ def create_property(request: PropertyCreate, current_user: Model.User = Depends(
 
 @router.put('/properties/{id}', tags=['Property'])
 @db_session
-def update_property(id: int, request: PropertyUpdate, current_user: Model.User = Depends(get_current_active_user)):
+def update_property(id: int, request: PropertyCreate, current_user: Model.User = Depends(get_current_active_user)):
     if request.sale_list_price:
         Model.Property[id].sale_list_price = request.sale_list_price
     if request.rent_list_price:
@@ -98,11 +103,9 @@ def update_property(id: int, request: PropertyUpdate, current_user: Model.User =
         Model.Property[id].land_area = request.land_area
     if request.description:
         Model.Property[id].description = request.description
-    if request.image:
-        Model.Property[id].image = request.image
-    if request.is_rent:
+    if hasattr(request, 'is_rent'):
         Model.Property[id].is_rent = request.is_rent
-    if request.is_sale:
+    if hasattr(request, 'is_sale'):
         Model.Property[id].is_sale = request.is_sale
     if request.reason:
         Model.Property[id].reason = request.reason
@@ -119,9 +122,33 @@ def update_property(id: int, request: PropertyUpdate, current_user: Model.User =
     if request.image and 'base64,' in request.image:
         base64_text_file = ''
         if request.image:
-            base64_text_file = Base64ToFile(request.image)
+            base64_text_file = Base64ToFile(request.image.split('base64,')[1])
 
         request.image = f"images/{base64_text_file.filename}"
+
+    Model.Property[id].updated_by = current_user.id
+    Model.Property[id].updated_at = datetime.now()
+
+    prop = Model.Property.select()
+    return {
+        'success': True,
+        'data': [PropertyUpdate.from_orm(u) for u in prop if u.id == id][0]
+    }
+
+
+@router.put('/properties/update_status/{id}', tags=['Property'])
+@db_session
+def update_property(id: int, request: PropertyUpdate, current_user: Model.User = Depends(get_current_active_user)):
+    if request.reason:
+        Model.Property[id].reason = request.reason
+    if request.status:
+        listing = ListingRes.from_orm(Model.Listing.select(property=Model.Property[id]).first())
+        if listing.id and request.status != 'reject':
+            Model.Property[id].status = 'listing pending'
+        else:
+            Model.Property[id].status = request.status
+    else:
+        Model.Property[id].status = 'pending'
 
     Model.Property[id].updated_by = current_user.id
     Model.Property[id].updated_at = datetime.now()

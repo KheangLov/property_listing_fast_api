@@ -60,13 +60,16 @@ def register(request: UserReg):
         password = _hash.get_password_hash(request.password)
         base64_text_file = ''
         if request.profile:
-            base64_text_file = Base64ToFile(request.profile)
+            base64_text_file = Base64ToFile(request.profile.split('base64,')[1])
 
         user = find_user(request.email)
         if user:
             return {
                 'success': False,
-                'message': 'Email already exist!'
+                'message': 'Email already exist!',
+                'field': {
+                    'email': ['Email already exist!']
+                }
             }
 
         user = dict(UserReg.from_orm(Model.User(
@@ -117,7 +120,7 @@ def update_user(id: int, request: UpdateUser, current_user: Model.User = Depends
     if hasattr(request, 'disabled'):
         Model.User[id].disabled = request.disabled
     if request.profile and 'base64,' in request.profile:
-        Model.User[id].profile = f"images/{Base64ToFile(request.profile).filename}"
+        Model.User[id].profile = f"images/{Base64ToFile(request.profile.split('base64,')[1]).filename}"
 
     Model.User[id].updated_at = datetime.now()
 

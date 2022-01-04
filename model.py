@@ -38,7 +38,7 @@ class Model:
         land_width = Required(Decimal)
         land_length = Required(Decimal)
         land_area = Required(Decimal)
-        description = Optional(str, default='')
+        description = Optional(str)
         created_at = Required(datetime, default=lambda: datetime.now())
         updated_at = Required(datetime, default=lambda: datetime.now())
         deleted_at = Optional(datetime)
