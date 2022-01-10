@@ -6,3 +6,4 @@ uvicorn~=0.15.0
 starlette~=0.16.0
 python-jose
 psycopg2
+fastapi_pagination

@@ -16,7 +16,6 @@ router = APIRouter()
 @router.get('/current-user')
 async def get_current_user(current_user: Model.User = Depends(get_current_active_user), credentials: HTTPAuthorizationCredentials = Security(security)):
     current_user = dict(current_user)
-    current_user['profile'] = f"{getenv('URL', 'http://127.0.0.1:9800/')}{current_user['profile']}" if current_user['profile'] else ''
     current_user['access_token'] = credentials.credentials
     return current_user
 
@@ -28,7 +27,7 @@ async def get_users(current_user: Model.User = Depends(get_current_active_user))
         result = []
         for u in users:
             user = UserRes.from_orm(u)
-            user.profile = f"{getenv('URL', 'http://127.0.0.1:9800/')}{user.profile}" if user.profile else ''
+            user.profile = user.profile if user.profile else ''
             result.append(user)
     return result
 
@@ -36,7 +35,8 @@ async def get_users(current_user: Model.User = Depends(get_current_active_user))
 @router.get('/users', response_model=Page[UserRes])
 async def get_users(search: Optional[str] = '', current_user: Model.User = Depends(get_current_active_user)):
     if search:
-        return paginate(list(Model.User.select().filter(lambda p: str(search) in str(p.first_name) or str(search) in str(p.last_name) or str(search) in str(p.email)).order_by(desc(Model.User.updated_at))))
+        search = str(search).lower()
+        return paginate(list(Model.User.select().filter(lambda p: search in str(p.first_name).lower() or search in str(p.last_name).lower() or search in str(p.email).lower()).order_by(desc(Model.User.updated_at))))
     return paginate(list(Model.User.select().order_by(desc(Model.User.updated_at))))
     # with db_session:
     #     users = Model.User.select()
@@ -58,7 +58,6 @@ async def get_users_count():
 async def get_user(id: int, current_user: Model.User = Depends(get_current_active_user)):
     with db_session:
         user = dict(UserRes.from_orm(Model.User.get(id=id)))
-        user['profile'] = f"{getenv('URL', 'http://127.0.0.1:9800/')}{user['profile']}" if user['profile'] else ''
         return user
 
 
@@ -66,7 +65,6 @@ async def get_user(id: int, current_user: Model.User = Depends(get_current_activ
 async def get_user_front(id: int):
     with db_session:
         user = dict(UserRes.from_orm(Model.User.get(id=id)))
-        user['profile'] = f"{getenv('URL', 'http://127.0.0.1:9800/')}{user['profile']}" if user['profile'] else ''
         return user
 
 

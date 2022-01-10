@@ -114,11 +114,8 @@ def update_property(id: int, request: PropertyCreate, current_user: Model.User =
     if request.user_id:
         Model.Property[id].user_id = request.user_id
     if request.image and 'base64,' in request.image:
-        base64_text_file = ''
-        if request.image:
-            base64_text_file = Base64ToFile(request.image.split('base64,')[1])
-
-        request.image = f"images/{base64_text_file.filename}"
+        base64_text_file = Base64ToFile(request.image.split('base64,')[1])
+        Model.Property[id].image = f"images/{base64_text_file.filename}"
 
     Model.Property[id].updated_by = current_user.id
     Model.Property[id].updated_at = datetime.now()

@@ -47,4 +47,4 @@ add_pagination(app)
 # db.generate_mapping()
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host=getenv('HOST', "127.0.0.1"), port=getenv('PORT', 9700), reload=True)
+    uvicorn.run("main:app", host=getenv('HOST', "127.0.0.1"), port=getenv('PORT', 9900), reload=True)
